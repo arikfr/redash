@@ -7,9 +7,10 @@ from flask_restful import abort
 
 from redash import models, settings
 from redash import serializers
-from redash.utils import json_dumps
+from redash.utils import json_dumps, collect_parameters_from_request
 from redash.handlers import routes
 from redash.handlers.base import org_scoped_rule, record_event
+from redash.handlers.query_results import run_query_sync
 from redash.permissions import require_access, view_only
 from authentication import current_org
 
@@ -22,10 +23,20 @@ def embed(query_id, visualization_id, org_slug=None):
     vis = query.visualizations.where(models.Visualization.id == visualization_id).first()
     qr = {}
 
+    parameter_values = collect_parameters_from_request(request.args)
+
     if vis is not None:
         vis = vis.to_dict()
         qr = query.latest_query_data
-        if qr is None:
+        if settings.ALLOW_PARAMETERS_IN_EMBEDS == True and len(parameter_values) > 0:
+            # run parameterized query
+            #
+            # WARNING: Note that the external query parameters
+            #          are a potential risk of SQL injections.
+            #
+            results = run_query_sync(query.data_source, parameter_values, query.query)
+            qr = {"data": json.loads(results)}
+        elif qr is None:
             abort(400, message="No Results for this query")
         else:
             qr = qr.to_dict()
@@ -52,6 +63,7 @@ def embed(query_id, visualization_id, org_slug=None):
                            client_config=json_dumps(client_config),
                            visualization=json_dumps(vis),
                            query_result=json_dumps(qr))
+
 
 
 @routes.route(org_scoped_rule('/public/dashboards/<token>'), methods=['GET'])

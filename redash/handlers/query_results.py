@@ -37,6 +37,22 @@ def run_query(data_source, parameter_values, query_text, query_id, max_age=0):
         job = enqueue_query(query_text, data_source, metadata={"Username": current_user.name, "Query ID": query_id})
         return {'job': job.to_dict()}
 
+#
+# Run a parameterized query synchronously and return the result
+#
+def run_query_sync(data_source, parameter_values, query_text):
+    query_parameters = set(collect_query_parameters(query_text))
+    missing_params = set(query_parameters) - set(parameter_values.keys())
+    if missing_params:
+        raise Exception('Missing parameter value for: {}'.format(", ".join(missing_params)))
+
+    if query_parameters:
+        query_text = pystache.render(query_text, parameter_values)
+
+    data, error = data_source.query_runner.run_query(query_text)
+    if error:
+        raise Exception(error)
+    return data
 
 class QueryResultListResource(BaseResource):
     @require_permission('execute_query')
