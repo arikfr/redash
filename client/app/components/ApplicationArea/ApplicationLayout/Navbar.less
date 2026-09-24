@@ -1,0 +1,502 @@
+@import (reference, less) "~@/assets/less/ant";
+
+@navbar-height: 56px;
+@phone: ~"(max-width: 767px)";
+@tablet-down: ~"(max-width: 1023px)";
+@laptop-down: ~"(max-width: 1279px)";
+
+// Colors are custom properties so a dark theme can override them later
+.app-navbar {
+  --navbar-bg: #ffffff;
+  --navbar-border: #e6e9ec;
+  --navbar-text: #5b6775;
+  --navbar-text-strong: #1f2a37;
+  --navbar-wordmark: #001529;
+  --navbar-accent: #ff7964; // Redash logo color
+  --navbar-primary: @primary-color;
+  --navbar-primary-text: #ffffff;
+  --navbar-hover-bg: #f3f5f7;
+  --navbar-active-bg: #eef1f4;
+  --navbar-selected-bg: #e8f2fc;
+  --navbar-selected-text: #135ba8;
+  --navbar-focus-ring: @primary-color;
+  --navbar-shadow: 0 12px 24px rgba(15, 27, 42, 0.12);
+  --navbar-backdrop: rgba(15, 27, 42, 0.35);
+
+  position: relative;
+  z-index: 1000;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: @navbar-height;
+  padding: 0 20px;
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--navbar-border);
+  font-family: @redash-font;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--navbar-text);
+
+  @media @laptop-down {
+    padding: 0 16px;
+  }
+
+  @media @tablet-down {
+    gap: 4px;
+    padding: 0 12px;
+  }
+
+  @media @phone {
+    padding: 0 8px 0 14px;
+  }
+
+  a,
+  button {
+    font: inherit;
+    color: inherit;
+    text-decoration: none;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--navbar-focus-ring);
+      outline-offset: 2px;
+    }
+  }
+
+  button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .app-navbar-icon {
+    flex-shrink: 0;
+    display: block;
+  }
+}
+
+.app-navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-right: 16px;
+
+  img {
+    width: 28px;
+    height: 28px;
+  }
+
+  @media @phone {
+    margin-right: 0;
+  }
+}
+
+.app-navbar .app-navbar-wordmark {
+  color: var(--navbar-wordmark);
+  font-size: 17px;
+  font-weight: 600;
+
+  @media @tablet-down {
+    display: none;
+  }
+}
+
+.app-navbar-sections {
+  display: flex;
+  align-self: stretch;
+  min-width: 0;
+  margin: 0 -4px; // offsets the bar's gap so the links sit next to each other
+
+  @media @phone {
+    display: none;
+  }
+}
+
+.app-navbar .app-navbar-section {
+  display: flex;
+  align-items: center;
+  height: @navbar-height;
+  padding: 0 12px;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  color: var(--navbar-text);
+
+  @media @tablet-down {
+    padding: 0 10px;
+  }
+
+  &:hover {
+    color: var(--navbar-text-strong);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &--active {
+    color: var(--navbar-text-strong);
+    font-weight: 600;
+    border-bottom-color: var(--navbar-accent);
+  }
+}
+
+.app-navbar-title {
+  display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navbar-text-strong);
+
+  @media @phone {
+    display: block;
+  }
+}
+
+.app-navbar-spacer {
+  flex-grow: 1;
+
+  @media @phone {
+    display: none;
+  }
+}
+
+// Create
+
+.app-navbar .app-navbar-create-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: var(--navbar-primary);
+  color: var(--navbar-primary-text);
+  font-size: 13px;
+  font-weight: 500;
+
+  &:hover {
+    filter: brightness(0.94);
+  }
+
+  @media @tablet-down {
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 0 4px;
+
+    .app-navbar-icon {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.app-navbar-create-label {
+  display: flex;
+
+  @media @tablet-down {
+    display: none;
+  }
+}
+
+.app-navbar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 6px;
+  background: var(--navbar-border);
+
+  @media @tablet-down {
+    display: none;
+  }
+}
+
+// Icon buttons (Help, Settings, phone menu toggle)
+
+.app-navbar .app-navbar-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  color: var(--navbar-text);
+
+  &:hover {
+    background: var(--navbar-hover-bg);
+    color: var(--navbar-text-strong);
+  }
+
+  &--active,
+  &--active:hover {
+    background: var(--navbar-active-bg);
+    color: var(--navbar-text-strong);
+  }
+
+  @media @tablet-down {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.app-navbar .app-navbar-help {
+  @media @tablet-down {
+    display: none;
+  }
+}
+
+.app-navbar .app-navbar-settings {
+  @media @phone {
+    display: none;
+  }
+}
+
+.app-navbar .app-navbar-phone-menu-toggle {
+  display: none;
+
+  @media @phone {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+// Avatar
+
+.app-navbar-user-menu {
+  margin-left: 6px;
+
+  @media @tablet-down {
+    margin-left: 4px;
+  }
+
+  @media @phone {
+    display: none;
+  }
+}
+
+.app-navbar .app-navbar-avatar-button {
+  display: flex;
+  border-radius: 50%;
+}
+
+.app-navbar-avatar {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+// Dropdown menus
+
+.app-navbar-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.app-navbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 1050;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--navbar-bg);
+  border: 1px solid var(--navbar-border);
+  border-radius: 8px;
+  box-shadow: var(--navbar-shadow);
+
+  &--left {
+    left: 0;
+  }
+
+  &--right {
+    right: 0;
+  }
+}
+
+.app-navbar .app-navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--navbar-text-strong);
+  text-align: left;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus {
+    background: var(--navbar-hover-bg);
+    color: var(--navbar-text-strong);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  @media (min-width: 1024px) {
+    &--compact-only {
+      display: none;
+    }
+  }
+}
+
+.app-navbar-dropdown-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--navbar-border);
+}
+
+.app-navbar-dropdown-account {
+  padding: 6px 10px;
+  max-width: 260px;
+
+  &-name {
+    font-weight: 600;
+    color: var(--navbar-text-strong);
+  }
+
+  &-name,
+  &-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &-email {
+    font-size: 13px;
+  }
+}
+
+.app-navbar-dropdown-version {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--navbar-text);
+
+  a {
+    color: var(--navbar-primary);
+  }
+}
+
+// Phone menu (< 768px)
+
+.app-navbar-phone-backdrop {
+  position: fixed;
+  top: @navbar-height;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--navbar-backdrop);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.app-navbar-phone-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: calc(100vh - @navbar-height);
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--navbar-border);
+  box-shadow: var(--navbar-shadow);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.app-navbar .app-navbar-phone-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 8px;
+  color: var(--navbar-text-strong);
+  font-size: 16px;
+  text-align: left;
+
+  .app-navbar-icon {
+    color: var(--navbar-text);
+  }
+
+  &:hover {
+    background: var(--navbar-hover-bg);
+    color: var(--navbar-text-strong);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &--active,
+  &--active:hover {
+    background: var(--navbar-selected-bg);
+    color: var(--navbar-selected-text);
+    font-weight: 600;
+
+    .app-navbar-icon {
+      color: var(--navbar-selected-text);
+    }
+  }
+}
+
+.app-navbar-phone-menu-divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin: 8px 4px;
+  background: var(--navbar-border);
+}
+
+.app-navbar-phone-menu-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+
+  &-details {
+    min-width: 0;
+  }
+
+  &-name {
+    font-size: 16px;
+    color: var(--navbar-text-strong);
+  }
+
+  &-email {
+    font-size: 13px;
+  }
+
+  &-name,
+  &-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
