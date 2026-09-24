@@ -1,7 +1,23 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
 import cx from "classnames";
 import { first, includes } from "lodash";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import {
+  Activity,
+  Bell,
+  ChevronDown,
+  CircleHelp,
+  LogOut,
+  Menu,
+  Monitor,
+  Plus,
+  Settings,
+  SquareTerminal,
+  User,
+  X,
+} from "lucide-react";
 import Link from "@/components/Link";
 import HelpTrigger from "@/components/HelpTrigger";
 import CreateDashboardDialog from "@/components/dashboards/CreateDashboardDialog";
@@ -11,8 +27,6 @@ import location from "@/services/location";
 import settingsMenu from "@/services/settingsMenu";
 import logoUrl from "@/assets/images/redash_icon_small.png";
 
-import NavbarDropdown from "./NavbarDropdown";
-import NavbarIcon from "./NavbarIcon";
 import VersionInfo from "./VersionInfo";
 
 import "./Navbar.less";
@@ -39,8 +53,6 @@ const SECTION_ROUTES = {
   alerts: ["Alerts.List", "Alerts.New", "Alerts.View", "Alerts.Edit"],
 };
 
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 function useActiveSection() {
   const currentRoute = useCurrentRoute();
   const routeId = currentRoute ? currentRoute.id : null;
@@ -64,15 +76,90 @@ function useActiveSection() {
 
 function getSections() {
   return [
-    currentUser.hasPermission("list_dashboards") && { key: "dashboards", title: "Dashboards", href: "dashboards" },
-    currentUser.hasPermission("view_query") && { key: "queries", title: "Queries", href: "queries" },
-    currentUser.hasPermission("list_alerts") && { key: "alerts", title: "Alerts", href: "alerts" },
+    currentUser.hasPermission("list_dashboards") && {
+      key: "dashboards",
+      title: "Dashboards",
+      href: "dashboards",
+      Icon: Monitor,
+    },
+    currentUser.hasPermission("view_query") && {
+      key: "queries",
+      title: "Queries",
+      href: "queries",
+      Icon: SquareTerminal,
+    },
+    currentUser.hasPermission("list_alerts") && { key: "alerts", title: "Alerts", href: "alerts", Icon: Bell },
   ].filter(Boolean);
 }
 
 const SECTION_TITLES = { dashboards: "Dashboards", queries: "Queries", alerts: "Alerts", settings: "Settings" };
 
+// Line icons matching the design: Lucide at a 1.8px stroke
+function Icon({ component: IconComponent, size }) {
+  return <IconComponent className="app-navbar-icon" size={size} strokeWidth={1.8} aria-hidden="true" />;
+}
+
+Icon.propTypes = {
+  component: PropTypes.elementType.isRequired,
+  size: PropTypes.number,
+};
+
+Icon.defaultProps = {
+  size: 15,
+};
+
+// Menu items render plain elements because Radix needs to hold a ref to them
+function MenuItem({ href, target, onSelect, className, children, ...props }) {
+  return (
+    <DropdownMenu.Item asChild onSelect={onSelect} className={cx("app-navbar-dropdown-item", className)}>
+      {href ? (
+        <a href={href} target={target} rel={target === "_blank" ? "noopener noreferrer" : undefined} {...props}>
+          {children}
+        </a>
+      ) : (
+        <button type="button" {...props}>
+          {children}
+        </button>
+      )}
+    </DropdownMenu.Item>
+  );
+}
+
+MenuItem.propTypes = {
+  href: PropTypes.string,
+  target: PropTypes.string,
+  onSelect: PropTypes.func,
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+MenuItem.defaultProps = {
+  href: undefined,
+  target: undefined,
+  onSelect: undefined,
+  className: undefined,
+  children: null,
+};
+
+function MenuContent({ children, ...props }) {
+  return (
+    <DropdownMenu.Content className="app-navbar-dropdown-menu" align="end" sideOffset={8} loop {...props}>
+      {children}
+    </DropdownMenu.Content>
+  );
+}
+
+MenuContent.propTypes = {
+  children: PropTypes.node,
+};
+
+MenuContent.defaultProps = {
+  children: null,
+};
+
 function CreateMenu() {
+  // Opening the New Dashboard dialog moves focus into it, so don't pull focus back to the trigger
+  const keepFocusRef = useRef(false);
   const canCreateQuery = currentUser.hasPermission("create_query");
   const canCreateDashboard = currentUser.hasPermission("create_dashboard");
   const canCreateAlert = currentUser.hasPermission("list_alerts");
@@ -82,37 +169,47 @@ function CreateMenu() {
   }
 
   return (
-    <NavbarDropdown
-      align="right"
-      className="app-navbar-create"
-      buttonClassName="app-navbar-create-button"
-      buttonProps={{ "aria-label": "Create", "data-test": "CreateButton" }}
-      buttonContent={
-        <>
-          <NavbarIcon name="plus" />
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <button type="button" className="app-navbar-create-button" aria-label="Create" data-test="CreateButton">
+          <Icon component={Plus} />
           <span className="app-navbar-create-label">Create</span>
-          <span className="app-navbar-create-label app-navbar-create-caret">
-            <NavbarIcon name="chevronDown" size={13} />
+          <span className="app-navbar-create-label">
+            <Icon component={ChevronDown} size={13} />
           </span>
-        </>
-      }
-    >
-      {canCreateQuery && (
-        <NavbarDropdown.Item href="queries/new" data-test="CreateQueryMenuItem">
-          New Query
-        </NavbarDropdown.Item>
-      )}
-      {canCreateDashboard && (
-        <NavbarDropdown.Item data-test="CreateDashboardMenuItem" onClick={() => CreateDashboardDialog.showModal()}>
-          New Dashboard
-        </NavbarDropdown.Item>
-      )}
-      {canCreateAlert && (
-        <NavbarDropdown.Item href="alerts/new" data-test="CreateAlertMenuItem">
-          New Alert
-        </NavbarDropdown.Item>
-      )}
-    </NavbarDropdown>
+        </button>
+      </DropdownMenu.Trigger>
+      <MenuContent
+        onCloseAutoFocus={(event) => {
+          if (keepFocusRef.current) {
+            keepFocusRef.current = false;
+            event.preventDefault();
+          }
+        }}
+      >
+        {canCreateQuery && (
+          <MenuItem href="queries/new" data-test="CreateQueryMenuItem">
+            New Query
+          </MenuItem>
+        )}
+        {canCreateDashboard && (
+          <MenuItem
+            data-test="CreateDashboardMenuItem"
+            onSelect={() => {
+              keepFocusRef.current = true;
+              CreateDashboardDialog.showModal();
+            }}
+          >
+            New Dashboard
+          </MenuItem>
+        )}
+        {canCreateAlert && (
+          <MenuItem href="alerts/new" data-test="CreateAlertMenuItem">
+            New Alert
+          </MenuItem>
+        )}
+      </MenuContent>
+    </DropdownMenu.Root>
   );
 }
 
@@ -135,35 +232,39 @@ Avatar.propTypes = {
 
 function UserMenu() {
   return (
-    <NavbarDropdown
-      align="right"
-      className="app-navbar-user-menu"
-      buttonClassName="app-navbar-avatar-button"
-      buttonProps={{ "aria-label": "Account menu", "data-test": "ProfileDropdown" }}
-      buttonContent={<Avatar size={30} />}
-    >
-      <div className="app-navbar-dropdown-account">
-        <div className="app-navbar-dropdown-account-name">{currentUser.name}</div>
-        <div className="app-navbar-dropdown-account-email">{currentUser.email}</div>
-      </div>
-      <NavbarDropdown.Divider />
-      <NavbarDropdown.Item href="users/me">Profile</NavbarDropdown.Item>
-      {currentUser.hasPermission("super_admin") && (
-        <NavbarDropdown.Item href="admin/status">System Status</NavbarDropdown.Item>
-      )}
-      {/* The Help button leaves the bar below 1024px and moves here */}
-      <NavbarDropdown.Item href={HELP_URL} target="_blank" className="app-navbar-dropdown-item--compact-only">
-        Help
-      </NavbarDropdown.Item>
-      <NavbarDropdown.Divider />
-      <NavbarDropdown.Item data-test="LogOutButton" onClick={() => Auth.logout()}>
-        Log out
-      </NavbarDropdown.Item>
-      <NavbarDropdown.Divider />
-      <div className="app-navbar-dropdown-version">
-        <VersionInfo />
-      </div>
-    </NavbarDropdown>
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="app-navbar-avatar-button"
+          aria-label="Account menu"
+          data-test="ProfileDropdown"
+        >
+          <Avatar size={30} />
+        </button>
+      </DropdownMenu.Trigger>
+      <MenuContent>
+        <div className="app-navbar-dropdown-account">
+          <div className="app-navbar-dropdown-account-name">{currentUser.name}</div>
+          <div className="app-navbar-dropdown-account-email">{currentUser.email}</div>
+        </div>
+        <DropdownMenu.Separator className="app-navbar-dropdown-divider" />
+        <MenuItem href="users/me">Profile</MenuItem>
+        {currentUser.hasPermission("super_admin") && <MenuItem href="admin/status">System Status</MenuItem>}
+        {/* The Help button leaves the bar below 1024px and moves here */}
+        <MenuItem href={HELP_URL} target="_blank" className="app-navbar-dropdown-item--compact-only">
+          Help
+        </MenuItem>
+        <DropdownMenu.Separator className="app-navbar-dropdown-divider" />
+        <MenuItem data-test="LogOutButton" onSelect={() => Auth.logout()}>
+          Log out
+        </MenuItem>
+        <DropdownMenu.Separator className="app-navbar-dropdown-divider" />
+        <div className="app-navbar-dropdown-version">
+          <VersionInfo />
+        </div>
+      </MenuContent>
+    </DropdownMenu.Root>
   );
 }
 
@@ -171,7 +272,7 @@ function PhoneMenuItem({ icon, active, children, ...props }) {
   const className = cx("app-navbar-phone-menu-item", { "app-navbar-phone-menu-item--active": active });
   const content = (
     <>
-      <NavbarIcon name={icon} size={20} />
+      <Icon component={icon} size={20} />
       {children}
     </>
   );
@@ -191,7 +292,7 @@ function PhoneMenuItem({ icon, active, children, ...props }) {
 }
 
 PhoneMenuItem.propTypes = {
-  icon: PropTypes.string.isRequired,
+  icon: PropTypes.elementType.isRequired,
   active: PropTypes.bool,
   href: PropTypes.string,
   children: PropTypes.node,
@@ -203,92 +304,83 @@ PhoneMenuItem.defaultProps = {
   children: null,
 };
 
-function PhoneMenu({ sections, activeSection, settingsPath, onClose, toggleButtonRef }) {
-  const panelRef = useRef();
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    const firstItem = panel && panel.querySelector(FOCUSABLE_SELECTOR);
-    if (firstItem) {
-      firstItem.focus();
-    }
-
-    // Keep focus in the panel (and the toggle button, so the menu can be closed) while it's open
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        onClose(true);
-        return;
-      }
-      if (event.key !== "Tab" || !panel) {
-        return;
-      }
-      const focusable = [toggleButtonRef.current, ...panel.querySelectorAll(FOCUSABLE_SELECTOR)].filter(Boolean);
-      const firstElement = first(focusable);
-      const lastElement = focusable[focusable.length - 1];
-      if (!includes(focusable, document.activeElement)) {
-        event.preventDefault();
-        firstElement.focus();
-      } else if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, toggleButtonRef]);
+// The panel is a modal dialog: Radix traps focus, closes it on Esc or a backdrop tap, and returns focus to the toggle
+function PhoneMenu({ sections, activeSection, settingsPath }) {
+  const contentRef = useRef();
 
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="app-navbar-phone-backdrop" onClick={() => onClose(true)} />
-      <div className="app-navbar-phone-menu" id="app-navbar-phone-menu" ref={panelRef}>
-        {sections.map((section) => (
-          <PhoneMenuItem
-            key={section.key}
-            href={section.href}
-            icon={section.key}
-            active={activeSection === section.key}
+      <Dialog.Overlay className="app-navbar-phone-backdrop" />
+      <Dialog.Content
+        ref={contentRef}
+        className="app-navbar-phone-menu"
+        aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          // Start on the first link rather than the close button
+          event.preventDefault();
+          const firstLink = contentRef.current && contentRef.current.querySelector("a[href]");
+          if (firstLink) {
+            firstLink.focus();
+          }
+        }}
+      >
+        <Dialog.Title className="sr-only">Menu</Dialog.Title>
+        {/* Sits over the bar's menu button, so the bar reads ✕ while the panel is open */}
+        <Dialog.Close asChild>
+          <button
+            type="button"
+            className="app-navbar-icon-button app-navbar-icon-button--active app-navbar-phone-menu-close"
+            aria-label="Close menu"
           >
-            {section.title}
+            <Icon component={X} size={20} />
+          </button>
+        </Dialog.Close>
+
+        <div className="app-navbar-phone-menu-items">
+          {sections.map((section) => (
+            <PhoneMenuItem
+              key={section.key}
+              href={section.href}
+              icon={section.Icon}
+              active={activeSection === section.key}
+            >
+              {section.title}
+            </PhoneMenuItem>
+          ))}
+
+          <div className="app-navbar-phone-menu-divider" role="separator" />
+
+          {settingsPath && (
+            <PhoneMenuItem href={settingsPath} icon={Settings} active={activeSection === "settings"}>
+              Settings
+            </PhoneMenuItem>
+          )}
+          <PhoneMenuItem href={HELP_URL} target="_blank" rel="noopener noreferrer" icon={CircleHelp}>
+            Help
           </PhoneMenuItem>
-        ))}
 
-        <div className="app-navbar-phone-menu-divider" role="separator" />
+          <div className="app-navbar-phone-menu-divider" role="separator" />
 
-        {settingsPath && (
-          <PhoneMenuItem href={settingsPath} icon="settings" active={activeSection === "settings"}>
-            Settings
-          </PhoneMenuItem>
-        )}
-        <PhoneMenuItem href={HELP_URL} target="_blank" rel="noopener noreferrer" icon="help">
-          Help
-        </PhoneMenuItem>
-
-        <div className="app-navbar-phone-menu-divider" role="separator" />
-
-        <div className="app-navbar-phone-menu-account">
-          <Avatar size={36} />
-          <div className="app-navbar-phone-menu-account-details">
-            <div className="app-navbar-phone-menu-account-name">{currentUser.name}</div>
-            <div className="app-navbar-phone-menu-account-email">{currentUser.email}</div>
+          <div className="app-navbar-phone-menu-account">
+            <Avatar size={36} />
+            <div className="app-navbar-phone-menu-account-details">
+              <div className="app-navbar-phone-menu-account-name">{currentUser.name}</div>
+              <div className="app-navbar-phone-menu-account-email">{currentUser.email}</div>
+            </div>
           </div>
-        </div>
-        <PhoneMenuItem href="users/me" icon="user">
-          Profile
-        </PhoneMenuItem>
-        {currentUser.hasPermission("super_admin") && (
-          <PhoneMenuItem href="admin/status" icon="status">
-            System Status
+          <PhoneMenuItem href="users/me" icon={User}>
+            Profile
           </PhoneMenuItem>
-        )}
-        <PhoneMenuItem icon="logout" onClick={() => Auth.logout()}>
-          Log out
-        </PhoneMenuItem>
-      </div>
+          {currentUser.hasPermission("super_admin") && (
+            <PhoneMenuItem href="admin/status" icon={Activity}>
+              System Status
+            </PhoneMenuItem>
+          )}
+          <PhoneMenuItem icon={LogOut} onClick={() => Auth.logout()}>
+            Log out
+          </PhoneMenuItem>
+        </div>
+      </Dialog.Content>
     </>
   );
 }
@@ -297,8 +389,6 @@ PhoneMenu.propTypes = {
   sections: PropTypes.arrayOf(PropTypes.object).isRequired,
   activeSection: PropTypes.string,
   settingsPath: PropTypes.string,
-  onClose: PropTypes.func.isRequired,
-  toggleButtonRef: PropTypes.object.isRequired,
 };
 
 PhoneMenu.defaultProps = {
@@ -315,19 +405,11 @@ export default function Navbar() {
   const settingsPath = firstSettingsTab ? firstSettingsTab.path : null;
 
   const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
-  const toggleButtonRef = useRef();
-
-  const closePhoneMenu = useCallback((returnFocus = false) => {
-    setIsPhoneMenuOpen(false);
-    if (returnFocus && toggleButtonRef.current) {
-      toggleButtonRef.current.focus();
-    }
-  }, []);
 
   // Close the phone menu on navigation
   useEffect(() => {
-    closePhoneMenu();
-  }, [routeKey, closePhoneMenu]);
+    setIsPhoneMenuOpen(false);
+  }, [routeKey]);
 
   // ...and when the window grows past the phone breakpoint
   useEffect(() => {
@@ -335,10 +417,10 @@ export default function Navbar() {
       return;
     }
     const query = window.matchMedia("(min-width: 768px)");
-    const handleChange = () => query.matches && closePhoneMenu();
+    const handleChange = () => query.matches && setIsPhoneMenuOpen(false);
     query.addListener(handleChange);
     return () => query.removeListener(handleChange);
-  }, [isPhoneMenuOpen, closePhoneMenu]);
+  }, [isPhoneMenuOpen]);
 
   return (
     <nav className="app-navbar" aria-label="Main">
@@ -369,7 +451,7 @@ export default function Navbar() {
       <div className="app-navbar-divider" aria-hidden="true" />
 
       <HelpTrigger type="HOME" showTooltip={false} className="app-navbar-icon-button app-navbar-help">
-        <NavbarIcon name="help" size={17} />
+        <Icon component={CircleHelp} size={17} />
         <span className="sr-only">Help</span>
       </HelpTrigger>
 
@@ -384,35 +466,20 @@ export default function Navbar() {
           aria-current={activeSection === "settings" ? "page" : undefined}
           data-test="SettingsLink"
         >
-          <NavbarIcon name="settings" size={17} />
+          <Icon component={Settings} size={17} />
         </Link>
       )}
 
       <UserMenu />
 
-      <button
-        type="button"
-        ref={toggleButtonRef}
-        className={cx("app-navbar-icon-button app-navbar-phone-menu-toggle", {
-          "app-navbar-icon-button--active": isPhoneMenuOpen,
-        })}
-        aria-label={isPhoneMenuOpen ? "Close menu" : "Open menu"}
-        aria-expanded={isPhoneMenuOpen}
-        aria-controls={isPhoneMenuOpen ? "app-navbar-phone-menu" : undefined}
-        onClick={() => (isPhoneMenuOpen ? closePhoneMenu(true) : setIsPhoneMenuOpen(true))}
-      >
-        <NavbarIcon name={isPhoneMenuOpen ? "close" : "menu"} size={20} />
-      </button>
-
-      {isPhoneMenuOpen && (
-        <PhoneMenu
-          sections={sections}
-          activeSection={activeSection}
-          settingsPath={settingsPath}
-          onClose={closePhoneMenu}
-          toggleButtonRef={toggleButtonRef}
-        />
-      )}
+      <Dialog.Root open={isPhoneMenuOpen} onOpenChange={setIsPhoneMenuOpen}>
+        <Dialog.Trigger asChild>
+          <button type="button" className="app-navbar-icon-button app-navbar-phone-menu-toggle" aria-label="Open menu">
+            <Icon component={Menu} size={20} />
+          </button>
+        </Dialog.Trigger>
+        <PhoneMenu sections={sections} activeSection={activeSection} settingsPath={settingsPath} />
+      </Dialog.Root>
     </nav>
   );
 }

@@ -165,6 +165,14 @@ const config = {
         ],
       },
       {
+        // ESM packages (e.g. Radix) import "react/jsx-runtime", which React 16 exposes without an exports map
+        test: /\.mjs$/,
+        include: /node_modules/,
+        resolve: {
+          fullySpecified: false
+        }
+      },
+      {
         test: /\.(t|j)sx?$/,
         exclude: /node_modules/,
         use: [

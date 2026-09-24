@@ -176,6 +176,7 @@
 // Create
 
 .app-navbar .app-navbar-create-button {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -277,8 +278,11 @@
 
 // Avatar
 
-.app-navbar-user-menu {
+.app-navbar .app-navbar-avatar-button {
+  display: flex;
+  flex-shrink: 0;
   margin-left: 6px;
+  border-radius: 50%;
 
   @media @tablet-down {
     margin-left: 4px;
@@ -289,10 +293,6 @@
   }
 }
 
-.app-navbar .app-navbar-avatar-button {
-  display: flex;
-  border-radius: 50%;
-}
 
 .app-navbar-avatar {
   display: block;
@@ -303,14 +303,8 @@
 
 // Dropdown menus
 
-.app-navbar-dropdown {
-  position: relative;
-  flex-shrink: 0;
-}
-
+// Radix positions the menu; z-index is copied onto its wrapper
 .app-navbar-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
   z-index: 1050;
   min-width: 200px;
   padding: 6px;
@@ -319,12 +313,8 @@
   border-radius: 8px;
   box-shadow: var(--navbar-shadow);
 
-  &--left {
-    left: 0;
-  }
-
-  &--right {
-    right: 0;
+  &:focus {
+    outline: none;
   }
 }
 
@@ -339,8 +329,7 @@
   text-align: left;
   white-space: nowrap;
 
-  &:hover,
-  &:focus {
+  &[data-highlighted] {
     background: var(--navbar-hover-bg);
     color: var(--navbar-text-strong);
   }
@@ -413,6 +402,17 @@
   top: 100%;
   right: 0;
   left: 0;
+
+  &:focus {
+    outline: none;
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.app-navbar-phone-menu-items {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -422,10 +422,6 @@
   background: var(--navbar-bg);
   border-bottom: 1px solid var(--navbar-border);
   box-shadow: var(--navbar-shadow);
-
-  @media (min-width: 768px) {
-    display: none;
-  }
 }
 
 .app-navbar .app-navbar-phone-menu-item {
@@ -464,6 +460,15 @@
       color: var(--navbar-selected-text);
     }
   }
+}
+
+// Positioned over the bar's menu button (bar height 56, button 44, bar right padding 8)
+.app-navbar .app-navbar-phone-menu-close {
+  position: absolute;
+  top: -50px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
 }
 
 .app-navbar-phone-menu-divider {
